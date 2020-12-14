@@ -32,6 +32,8 @@ import argparse
 import sys
 from collections import Counter
 from gcnmodel import GraphConv
+import spacy
+import copy
 
 
 logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p', level=logging.INFO)
@@ -100,6 +102,7 @@ def preprocess_data(data_home, **kwargs):
     dl = DataLoader(data_home=data_home, bucket_size=bucket_size, encoding=encoding, 
                     celebrity_threshold=celebrity_threshold, one_hot_labels=one_hot_label, mindf=mindf, token_pattern=r'(?u)(?<![@])#?\b\w\w+\b')
     dl.load_data()
+    orig_df_train, orig_df_dev, orig_df_test = copy.deepcopy(dl.df_train), copy.deepcopy(dl.df_dev), copy.deepcopy(dl.df_test)
     dl.assignClasses()
     dl.tfidf()
     vocab = dl.vectorizer.vocabulary_
@@ -128,9 +131,30 @@ def preprocess_data(data_home, **kwargs):
     A = A.astype(dtype)
     logging.info('adjacency matrix created.')
 
-    X_train = dl.X_train
-    X_dev = dl.X_dev
-    X_test = dl.X_test
+    logging.info(dl.X_train)
+
+
+
+    nlp = spacy.load('en_core_web_md')
+
+    for i in range(0, orig_df_train.text.values.size):
+        # im = nlp(orig_df_train.text.values[i]).vector.tolist()
+        # orig_df_train.text.values[i] = sum(im)/len(im)
+        orig_df_train.text.values[i] = nlp(orig_df_train.text.values[i]).vector.tolist()
+    for i in range(0, orig_df_dev.text.values.size):
+        # im = nlp(orig_df_dev.text.values[i]).vector.tolist()
+        # orig_df_dev.text.values[i] = sum(im)/len(im)
+        orig_df_dev.text.values[i] = nlp(orig_df_dev.text.values[i]).vector.tolist()
+    for i in range(0, orig_df_test.text.values.size):
+        # im = nlp(orig_df_test.text.values[i]).vector.tolist()
+        # orig_df_test.text.values[i] = sum(im)/len(im)
+        orig_df_test.text.values[i] = nlp(orig_df_test.text.values[i]).vector.tolist()
+
+
+    X_train = orig_df_train.text.values
+    X_dev = orig_df_dev.text.values
+    X_test = orig_df_test.text.values
+
     Y_test = dl.test_classes
     Y_train = dl.train_classes
     Y_dev = dl.dev_classes
@@ -149,8 +173,12 @@ def preprocess_data(data_home, **kwargs):
         userLocation[u] = P_test[i]
     for i, u in enumerate(U_dev):
         userLocation[u] = P_dev[i]
-    
+
+   
     data = (A, X_train, Y_train, X_dev, Y_dev, X_test, Y_test, U_train, U_dev, U_test, classLatMedian, classLonMedian, userLocation)
+
+    logging.info(X_train)
+
     if not model_args.builddata:
         logging.info('dumping data in {} ...'.format(str(dump_file)))
         dump_obj(data, dump_file)
@@ -169,6 +197,15 @@ def main(data, args, **kwargs):
     check_percentiles = kwargs.get('percent', False)
     A, X_train, Y_train, X_dev, Y_dev, X_test, Y_test, U_train, U_dev, U_test, classLatMedian, classLonMedian, userLocation = data
     logging.info('stacking training, dev and test features and creating indices...')
+
+    logging.info(type(X_train[0]))
+    X_train = np.vstack(elem for elem in X_train)
+    X_train = sp.sparse.csr_matrix(X_train)
+    X_dev = np.vstack(elem for elem in X_dev)
+    X_dev = sp.sparse.csr_matrix(X_dev)
+    X_test = np.vstack(elem for elem in X_test)
+    X_test = sp.sparse.csr_matrix(X_test)
+
     X = sp.sparse.vstack([X_train, X_dev, X_test])
     if len(Y_train.shape) == 1:
         Y = np.hstack((Y_train, Y_dev, Y_test))
@@ -181,7 +218,8 @@ def main(data, args, **kwargs):
         from deepcca import draw_representations
         draw_representations(A.dot(X), Y, filename='gconv1.pdf')
         draw_representations(A.dot(A.dot(X)), Y, filename='gconv2.pdf')
-    input_size = X.shape[1]
+    # input_size = X.shape[1]
+    input_size = X.shape
     output_size = np.max(Y) + 1
     verbose = not args.silent
     fractions = args.lblfraction

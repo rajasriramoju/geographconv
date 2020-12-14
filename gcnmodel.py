@@ -336,6 +336,7 @@ class GraphConv():
         np.random.seed(seed)
         logging.info('Graphconv model input size {}, output size {} and hidden layers {} regul {} dropout {}.'.format(self.input_size, self.output_size, str(self.hid_size_list), self.regul_coef, self.drop_out))
         self.X_sym = S.csr_matrix(name='inputs', dtype=self.dtype)
+        logging.info(self.input_size)
         self.train_indices_sym = T.lvector()
         self.dev_indices_sym = T.lvector()
         self.test_indices_sym = T.lvector()
@@ -348,8 +349,7 @@ class GraphConv():
         Wh = lasagne.init.GlorotUniform(gain=1)
 
         #input layer
-        l_in = lasagne.layers.InputLayer(shape=(None, self.input_size),
-                                         input_var=self.X_sym)
+        l_in = lasagne.layers.InputLayer(shape=(self.input_size), input_var=self.X_sym)
         l_hid = SparseInputDenseLayer(l_in, num_units=self.hid_size_list[0], nonlinearity=nonlinearity)
 
         #add hidden layers
