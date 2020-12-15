@@ -108,8 +108,11 @@ class DataLoader():
         df_test.set_index(['user'], drop=True, append=False, inplace=True)
         df_test.sort_index(inplace=True)
         self.df_train = df_train
+        self.df_train[['lat', 'lon']] = self.df_train[['lat', 'lon']].astype('float32')
         self.df_dev = df_dev
+        self.df_dev[['lat', 'lon']] = self.df_dev[['lat', 'lon']].astype('float32')
         self.df_test = df_test
+        self.df_test[['lat', 'lon']] = self.df_test[['lat', 'lon']].astype('float32')
         
 
     def get_graph(self):
