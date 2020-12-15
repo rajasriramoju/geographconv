@@ -5,7 +5,7 @@ Semi-supervised User Geolocation Classification using Filtered User Relations an
 Introduction
 ------------
 
-This builds off Afshin et. al's model of Semi-supervised User Geolocation via Graph Convolutional Networks with 
+This builds off Rahimi et. al's model of Semi-supervised User Geolocation via Graph Convolutional Networks with 
 modifications by implementing a SpaCy Woord2Vec model.
 
 There is a base_model branch that runs the original model with updated paramters against our dataset. 
